@@ -1,4 +1,6 @@
 venv/
+# Ignore PyCharm settings
+.idea/
 __pycache__/
 *.pyc
 *.pyo
