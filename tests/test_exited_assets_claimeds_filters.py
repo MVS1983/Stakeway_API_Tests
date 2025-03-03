@@ -5,9 +5,10 @@ from assertpy import assert_that
 
 from utils.fetch import fetch_get
 from utils.random_data_limit_offset import get_random_limit
+from routes.indexer_endpoints import BASE_URL
 
-URL_1 = "https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersExitedAssetsClaimedsIdx1"
-URL_2 = "https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersExitedAssetsClaimedsIdx1"
+URL_1 = f"{BASE_URL}api/v1/events/GetByFiltersExitedAssetsClaimedsIdx1"
+URL_2 = f"{BASE_URL}api/v1/events/GetByFiltersExitedAssetsClaimedsIdx1"
 
 
 @pytest.fixture(params=[URL_1, URL_2])
