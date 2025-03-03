@@ -7,7 +7,11 @@ from utils.fetch import fetch_get
 from utils.random_data_limit_offset import get_random_limit
 
 
-@pytest.fixture()
+URL_1 = "https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositedsIdx1"
+URL_2 = "https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositedsIdx2"
+
+
+@pytest.fixture(params=[URL_1, URL_2])
 def extract_values_from_response(request):
     """
     Extract specific values from the response.
@@ -27,7 +31,9 @@ def extract_values_from_response(request):
             int(value["logIndex"]),
             str(value["caller"]),
             str(value["receiver"]),
-            str(value["referrer"])
+            str(value["referrer"]),
+            str(value["user"]),
+            str(value["vaultAddress"]),
         )
         for value in body["values"]
     ]
@@ -37,12 +43,11 @@ def extract_values_from_response(request):
         raise ValueError("Not enough values in the response to extract a sample of 1.")
 
     random_values = random.choice(extracted_values)
-    several_values = random.sample(extracted_values, k=5)
+    several_values = random.sample(extracted_values, k=min(5, len(extracted_values)))
     return url, random_values, several_values
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_caller_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     caller = random_values[7]
@@ -61,8 +66,7 @@ def test_caller_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_caller_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=["callerSortAsc=True"])
@@ -76,8 +80,7 @@ def test_caller_sort_asc(extract_values_from_response):
         assert values[i] <= values[i + 1], "Callers are not sorted in ascending order."
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_caller_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=["callerSortDesc=True"])
@@ -91,8 +94,7 @@ def test_caller_sort_desc(extract_values_from_response):
         assert values[i] >= values[i + 1], "Callers are not sorted in ascending order."
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_receiver_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     receiver = random_values[8]
@@ -111,8 +113,7 @@ def test_receiver_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_receiver_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=["receiverSortAsc=True"])
@@ -126,8 +127,7 @@ def test_receiver_sort_asc(extract_values_from_response):
         assert values[i] <= values[i + 1], "Receiver are not sorted in ascending order."
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_receiver_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=["receiverSortDesc=True"])
@@ -141,8 +141,7 @@ def test_receiver_sort_desc(extract_values_from_response):
         assert values[i] >= values[i + 1], "Receiver are not sorted in ascending order."
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_referrer_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     referrer = random_values[9]
@@ -161,8 +160,7 @@ def test_referrer_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_referrer_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=["referrerSortAsc=True"])
@@ -176,8 +174,7 @@ def test_referrer_sort_asc(extract_values_from_response):
         assert values[i] <= values[i + 1], "Referrer are not sorted in ascending order."
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_referrer_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=["referrerSortDesc=True"])
@@ -191,8 +188,7 @@ def test_referrer_sort_desc(extract_values_from_response):
         assert values[i] >= values[i + 1], "Referrer are not sorted in ascending order."
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_shares_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     shares = random_values[2]
@@ -211,8 +207,7 @@ def test_shares_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)  # The indirect=True argument tells pytest to pass these values to the fixture
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)  # The indirect=True argument tells pytest to pass these values to the fixture
 # through the request object instead of directly to the test function.
 def test_shares_gt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
@@ -228,8 +223,7 @@ def test_shares_gt_filter(extract_values_from_response):
         assert_that(int(obj['shares'])).is_greater_than(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_shares_ge_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     shares = random_values[2]
@@ -244,8 +238,7 @@ def test_shares_ge_filter(extract_values_from_response):
         assert_that(int(obj['shares'])).is_greater_than_or_equal_to(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_shares_lt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     shares = random_values[2]
@@ -260,8 +253,7 @@ def test_shares_lt_filter(extract_values_from_response):
         assert_that(int(obj['shares'])).is_less_than(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_shares_le_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     shares = random_values[2]
@@ -276,8 +268,7 @@ def test_shares_le_filter(extract_values_from_response):
         assert_that(int(obj['shares'])).is_less_than_or_equal_to(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_shares_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['sharesSortAsc=true'])
@@ -296,8 +287,7 @@ def test_shares_sort_asc(extract_values_from_response):
     print("All shares are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_shares_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['sharesSortDesc=true'])
@@ -316,8 +306,7 @@ def test_shares_sort_desc(extract_values_from_response):
     print("All shares are sorted in descending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockNumber = random_values[0]
@@ -337,8 +326,7 @@ def test_block_number_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_value_ge(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockNumber = random_values[0]
@@ -353,8 +341,7 @@ def test_block_number_value_ge(extract_values_from_response):
         assert_that(int(obj['blockNumber'])).is_greater_than_or_equal_to(blockNumber)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_value_lt(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockNumber = random_values[0]
@@ -369,8 +356,7 @@ def test_block_number_value_lt(extract_values_from_response):
         assert_that(int(obj['blockNumber'])).is_less_than(blockNumber)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockNumberSortAsc=true'])
@@ -390,8 +376,7 @@ def test_block_number_sort_asc(extract_values_from_response):
     print("All values are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockTs = random_values[1]
@@ -411,8 +396,7 @@ def test_block_ts_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_value_ge(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockTs = random_values[1]
@@ -423,8 +407,7 @@ def test_block_ts_value_ge(extract_values_from_response):
         assert_that(obj['blockTs']).is_greater_than_or_equal_to(blockTs)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_value_lt(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockTs = random_values[1]
@@ -439,8 +422,7 @@ def test_block_ts_value_lt(extract_values_from_response):
         assert_that(obj['blockTs']).is_less_than(blockTs)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockTsSortAsc=true'])
@@ -460,8 +442,7 @@ def test_block_ts_sort_asc(extract_values_from_response):
     print("All blockTs values are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockTsSortDesc=true'])
@@ -482,8 +463,7 @@ def test_block_ts_sort_desc(extract_values_from_response):
     print("All blockTs values are sorted in descending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_assets_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     assets = random_values[3]
@@ -502,8 +482,8 @@ def test_assets_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)  # The indirect=True argument tells pytest to pass these values to the fixture
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+# The indirect=True argument tells pytest to pass these values to the fixture
 # through the request object instead of directly to the test function.
 def test_assets_gt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
@@ -519,8 +499,7 @@ def test_assets_gt_filter(extract_values_from_response):
         assert_that(int(obj['assets'])).is_greater_than(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_assets_ge_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     assets = random_values[3]
@@ -535,8 +514,7 @@ def test_assets_ge_filter(extract_values_from_response):
         assert_that(int(obj['assets'])).is_greater_than_or_equal_to(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_assets_lt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     assets = random_values[3]
@@ -551,8 +529,7 @@ def test_assets_lt_filter(extract_values_from_response):
         assert_that(int(obj['assets'])).is_less_than(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_assets_le_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     assets = random_values[3]
@@ -567,8 +544,7 @@ def test_assets_le_filter(extract_values_from_response):
         assert_that(int(obj['assets'])).is_less_than_or_equal_to(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_assets_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['assetsSortAsc=true'])
@@ -587,8 +563,7 @@ def test_assets_sort_asc(extract_values_from_response):
     print("All assets are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_assets_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['assetsSortDesc=true'])
@@ -607,8 +582,7 @@ def test_assets_sort_desc(extract_values_from_response):
     print("All assets are sorted in descending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_tx_hash_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     txHash = random_values[5]
@@ -628,8 +602,7 @@ def test_tx_hash_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_log_index_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     logIndex = random_values[6]
@@ -650,8 +623,7 @@ def test_log_index_filter(extract_values_from_response):
     print(f"Total: {body['total']}")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_indexed_at_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     indexedAt = random_values[5]
@@ -671,8 +643,101 @@ def test_indexed_at_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_user_filter(extract_values_from_response):
+    url, random_values, _ = extract_values_from_response
+    user = random_values[10]
+    resp, body = fetch_get(url, params=[f'user={user}&limit=10000'])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    objs = body['values']
+    for obj in objs:
+        print(f"user: {obj['user']}")
+        assert_that((obj['user'])).is_equal_to(user).described_as(
+            f"The user filter is not working correctly."
+            f"Expected user: '{user}' in the params, but got user: '{(obj['user'])}' in the response objects.")
+        assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
+            f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_user_sort_asc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["userSortAsc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["user"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] <= values[i + 1], "Users are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_user_sort_desc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["userSortDesc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["user"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] >= values[i + 1], "Users are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_vault_address_filter(extract_values_from_response):
+    url, random_values, _ = extract_values_from_response
+    vaultAddress = random_values[11]
+    resp, body = fetch_get(url, params=[f'vaultAddress={vaultAddress}&limit=10000'])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    objs = body['values']
+    for obj in objs:
+        print(f"vaultAddress: {obj['vaultAddress']}")
+        assert_that((obj['vaultAddress'])).is_equal_to(vaultAddress).described_as(
+            f"The vaultAddress filter is not working correctly."
+            f"Expected vaultAddress: '{vaultAddress}' in the params, but got vaultAddress: '{(obj['vaultAddress'])}' in the response objects.")
+        assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
+            f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_vault_address_sort_asc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["vaultAddressSortAsc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["vaultAddress"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] <= values[i + 1], "VaultAddresses are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_vault_address_sort_desc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["vaultAddressSortDesc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["vaultAddress"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] >= values[i + 1], "VaultAddresses are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_random_limit(extract_values_from_response):
     url, _, _ = extract_values_from_response
 
@@ -703,6 +768,8 @@ def extract_field_value(obj, filter_name):
         "callerFilterIn": obj["caller"],
         "receiverFilterIn": obj["receiver"],
         "referrerFilterIn": obj["referrer"],
+        "userFilterIn": obj["user"],
+        "vaultAddressFilterIn": obj["vaultAddress"],
     }
     return field_map[filter_name]
 
@@ -710,13 +777,25 @@ def extract_field_value(obj, filter_name):
 @pytest.mark.parametrize(
     "filter_name, extract_values_from_response",
     [
-        ("assetsFilterIn", f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"),
-        ("sharesFilterIn", f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"),
-        ("txHashFilterIn", f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"),
-        ("blockNumberFilterIn", f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"),
-        ("callerFilterIn", f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"),
-        ("receiverFilterIn", f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds"),
-        ("referrerFilterIn", f"https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersDepositeds")
+        ("assetsFilterIn", URL_1),
+        ("assetsFilterIn", URL_2),
+        ("sharesFilterIn", URL_1),
+        ("sharesFilterIn", URL_2),
+        ("txHashFilterIn", URL_1),
+        ("txHashFilterIn", URL_2),
+        ("blockNumberFilterIn", URL_1),
+        ("blockNumberFilterIn", URL_2),
+        ("callerFilterIn", URL_1),
+        ("callerFilterIn", URL_2),
+        ("receiverFilterIn", URL_1),
+        ("receiverFilterIn", URL_2),
+        ("referrerFilterIn", URL_1),
+        ("referrerFilterIn", URL_2),
+        ("userFilterIn", URL_1),
+        ("userFilterIn", URL_2),
+        ("vaultAddressFilterIn", URL_1),
+        ("vaultAddressFilterIn", URL_2),
+
     ],
     indirect=["extract_values_from_response"]
 )
@@ -731,6 +810,8 @@ def test_filter_in(filter_name, extract_values_from_response):
         "callerFilterIn": 7,
         "receiverFilterIn": 8,
         "referrerFilterIn": 9,
+        "userFilterIn": 10,
+        "vaultAddressFilterIn": 11
     }
     values = [item[field_map[filter_name]] for item in several_values]
     filter_value = ','.join(map(str, values))
