@@ -1,2 +1,2 @@
 
-BASE_URL = "https://stakeway2.indexer-test.gateway.fm/"
+BASE_URL = "Replace URL with Stakeway address"
