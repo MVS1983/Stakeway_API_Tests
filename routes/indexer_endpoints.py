@@ -1,2 +1,2 @@
 
-BASE_URL = "Replace URL with Stakeway address"
+BASE_URL = "Replace URL with the Stakeway address"
