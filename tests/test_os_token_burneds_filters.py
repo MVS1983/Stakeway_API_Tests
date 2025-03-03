@@ -6,10 +6,11 @@ from assertpy import assert_that
 from utils.fetch import fetch_get
 from utils.random_data_limit_offset import get_random_limit
 
-URL = "https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersExitedAssetsClaimeds"
+URL_1 = "https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersOsTokenBurnedsIdx1"
+URL_2 = "https://stakeway2.indexer-test.gateway.fm/api/v1/events/GetByFiltersOsTokenBurnedsIdx2"
 
 
-@pytest.fixture()
+@pytest.fixture(params=[URL_1, URL_2])
 def extract_values_from_response(request):
     """
     Extract specific values from the response.
@@ -22,13 +23,14 @@ def extract_values_from_response(request):
         (
             int(value["blockNumber"]),
             int(value["blockTs"]),
-            str(value["prevPositionTicket"]),
-            str(value["newPositionTicket"]),
+            str(value["shares"]),
+            str(value["assets"]),
             str(value["txHash"]),
             int(value["indexedAt"]),
             int(value["logIndex"]),
-            str(value["withdrawnAssets"]),
-            str(value["receiver"]),
+            str(value["caller"]),
+            str(value["user"]),
+            str(value["vaultAddress"]),
         )
         for value in body["values"]
     ]
@@ -38,312 +40,175 @@ def extract_values_from_response(request):
         raise ValueError("Not enough values in the response to extract a sample of 1.")
 
     random_values = random.choice(extracted_values)
-    several_values = random.sample(extracted_values, k=5)
+    several_values = random.sample(extracted_values, k=min(5, len(extracted_values)))
     return url, random_values, several_values
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_withdrawn_assets_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_caller_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    withdrawnAssets = random_values[7]
-    resp, body = fetch_get(url, params=[f'withdrawnAssets={withdrawnAssets}&limit=10000'])
+    caller = random_values[7]
+    resp, body = fetch_get(url, params=[f'caller={caller}&limit=10000'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"withdrawnAssets: {obj['withdrawnAssets']}")
-        assert_that((obj['withdrawnAssets'])).is_equal_to(withdrawnAssets).described_as(
-            f"The withdrawnAssets filter is not working correctly."
-            f"Expected withdrawnAssets: '{withdrawnAssets}' in the params, but got withdrawnAssets: '{(obj['withdrawnAssets'])}' in the response objects.")
+        print(f"caller: {obj['caller']}")
+        assert_that((obj['caller'])).is_equal_to(caller).described_as(
+            f"The caller filter is not working correctly."
+            f"Expected caller: '{caller}' in the params, but got Caller: '{(obj['caller'])}' in the response objects.")
         assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)  # The indirect=True argument tells pytest to pass these values to the fixture
-# through the request object instead of directly to the test function.
-def test_withdrawn_assets_gt_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_caller_sort_asc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["callerSortAsc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["caller"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] <= values[i + 1], "Callers are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_caller_sort_desc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["callerSortDesc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["caller"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] >= values[i + 1], "Callers are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_shares_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    withdrawnAssets = random_values[7]
-    resp, body = fetch_get(url, params=[f'withdrawnAssetsFilterGt={withdrawnAssets}'])
+    shares = random_values[2]
+    resp, body = fetch_get(url, params=[f'shares={shares}&limit=10000'])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    objs = body['values']
+    for obj in objs:
+        print(f"shares: {int(obj['shares'])}")
+        assert_that(int(obj['shares'])).is_equal_to(int(shares)).described_as(
+            f"The shares filter is not working correctly."
+            f"Expected Shares: '{shares}' in the params, but got Share: '{int(obj['shares'])}' in the response objects.")
+        assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
+            f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_shares_gt_filter(extract_values_from_response):
+    url, random_values, _ = extract_values_from_response
+    shares = random_values[2]
+    resp, body = fetch_get(url, params=[f'sharesFilterGt={shares}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200
 
     objs = body['values']
     for obj in objs:
-        print(f"withdrawnAssets: {int(obj['withdrawnAssets'])}")
-        assert_that(int(obj['withdrawnAssets'])).is_greater_than(int(withdrawnAssets))
+        print(f"shares: {int(obj['shares'])}")
+        assert_that(int(obj['shares'])).is_greater_than(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_withdrawn_assets_ge_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_shares_ge_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    withdrawnAssets = random_values[7]
-    resp, body = fetch_get(url, params=[f'withdrawnAssetsFilterGe={withdrawnAssets}'])
+    shares = random_values[2]
+    resp, body = fetch_get(url, params=[f'sharesFilterGe={shares}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"withdrawnAssets: {int(obj['withdrawnAssets'])}")
-        assert_that(int(obj['withdrawnAssets'])).is_greater_than_or_equal_to(int(withdrawnAssets))
+        print(f"shares: {int(obj['shares'])}")
+        assert_that(int(obj['shares'])).is_greater_than_or_equal_to(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_withdrawn_assets_lt_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_shares_lt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    withdrawnAssets = random_values[7]
-    resp, body = fetch_get(url, params=[f'withdrawnAssetsFilterLt={withdrawnAssets}'])
+    shares = random_values[2]
+    resp, body = fetch_get(url, params=[f'sharesFilterLt={shares}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"withdrawnAssets: {int(obj['withdrawnAssets'])}")
-        assert_that(int(obj['withdrawnAssets'])).is_less_than(int(withdrawnAssets))
+        print(f"shares: {int(obj['shares'])}")
+        assert_that(int(obj['shares'])).is_less_than(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_withdrawn_assets_le_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_shares_le_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    withdrawnAssets = random_values[7]
-    resp, body = fetch_get(url, params=[f'withdrawnAssetsFilterLe={withdrawnAssets}'])
+    shares = random_values[2]
+    resp, body = fetch_get(url, params=[f'sharesFilterLe={shares}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"withdrawnAssets: {int(obj['withdrawnAssets'])}")
-        assert_that(int(obj['withdrawnAssets'])).is_less_than_or_equal_to(int(withdrawnAssets))
+        print(f"shares: {int(obj['shares'])}")
+        assert_that(int(obj['shares'])).is_less_than_or_equal_to(int(shares))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_withdrawn_assets_sort_asc(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_shares_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=['withdrawnAssetsSortAsc=true'])
+    resp, body = fetch_get(url, params=['sharesSortAsc=true'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     # Convert all values to integers
-    values = [int(obj['withdrawnAssets']) for obj in objs]
+    values = [int(obj['shares']) for obj in objs]
 
     # Check if values are sorted in ascending order
     for i in range(len(values) - 1):
-        assert values[i] <= values[i + 1], f"withdrawnAssets are not sorted in ascending order: {values}"
+        assert values[i] <= values[i + 1], f"Shares are not sorted in ascending order: {values}"
 
-    print("All withdrawnAssets are sorted in ascending order.")
+    print("All shares are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_withdrawn_assets_sort_desc(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_shares_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=['withdrawnAssetsSortDesc=true'])
+    resp, body = fetch_get(url, params=['sharesSortDesc=true'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     # Convert all values to integers
-    values = [int(obj['withdrawnAssets']) for obj in objs]
+    values = [int(obj['shares']) for obj in objs]
 
     # Check if values are sorted in descending order
     for i in range(len(values) - 1):
-        assert values[i] >= values[i + 1], f"withdrawnAssets are not sorted in descending order: {values}"
+        assert values[i] >= values[i + 1], f"Shares are not sorted in descending order: {values}"
 
-    print("All withdrawnAssets are sorted in descending order.")
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_receiver_filter(extract_values_from_response):
-    url, random_values, _ = extract_values_from_response
-    receiver = random_values[8]
-    resp, body = fetch_get(url, params=[f'receiver={receiver}&limit=10000'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    objs = body['values']
-    for obj in objs:
-        print(f"receiver: {obj['receiver']}")
-        assert_that((obj['receiver'])).is_equal_to(receiver).described_as(
-            f"The receiver filter is not working correctly."
-            f"Expected receiver: '{receiver}' in the params, but got Receiver: '{(obj['receiver'])}' in the response objects.")
-        assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
-            f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
+    print("All shares are sorted in descending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_receiver_sort_asc(extract_values_from_response):
-    url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=["receiverSortAsc=True"])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    values = [int(obj["receiver"], 16) for obj in body["values"]]
-    for i in range(len(values) - 1):
-        print(values[i])
-        assert values[i] <= values[i + 1], "Receiver are not sorted in ascending order."
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_receiver_sort_desc(extract_values_from_response):
-    url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=["receiverSortDesc=True"])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    values = [int(obj["receiver"], 16) for obj in body["values"]]
-    for i in range(len(values) - 1):
-        print(values[i])
-        assert values[i] >= values[i + 1], "Receiver are not sorted in ascending order."
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_prev_position_ticket_filter(extract_values_from_response):
-    url, random_values, _ = extract_values_from_response
-    prevPositionTicket = random_values[2]
-    resp, body = fetch_get(url, params=[f'prevPositionTicket={prevPositionTicket}&limit=10000'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    objs = body['values']
-    for obj in objs:
-        print(f"prevPositionTicket: {int(obj['prevPositionTicket'])}")
-        assert_that(int(obj['prevPositionTicket'])).is_equal_to(int(prevPositionTicket)).described_as(
-            f"The prevPositionTicket filter is not working correctly."
-            f"Expected prevPositionTicket: '{prevPositionTicket}' in the params, but got prevPositionTicket: '{int(obj['prevPositionTicket'])}' in the response objects.")
-        assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
-            f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)  # The indirect=True argument tells pytest to pass these values to the fixture
-# through the request object instead of directly to the test function.
-def test_prev_position_ticket_gt_filter(extract_values_from_response):
-    url, random_values, _ = extract_values_from_response
-    prevPositionTicket = random_values[2]
-    resp, body = fetch_get(url, params=[f'prevPositionTicketFilterGt={prevPositionTicket}'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200
-
-    objs = body['values']
-    for obj in objs:
-        print(f"prevPositionTicket: {int(obj['prevPositionTicket'])}")
-        assert_that(int(obj['prevPositionTicket'])).is_greater_than(int(prevPositionTicket))
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_prev_position_ticket_ge_filter(extract_values_from_response):
-    url, random_values, _ = extract_values_from_response
-    prevPositionTicket = random_values[2]
-    resp, body = fetch_get(url, params=[f'prevPositionTicketFilterGe={prevPositionTicket}'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    objs = body['values']
-    for obj in objs:
-        print(f"prevPositionTicket: {int(obj['prevPositionTicket'])}")
-        assert_that(int(obj['prevPositionTicket'])).is_greater_than_or_equal_to(int(prevPositionTicket))
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_prev_position_ticket_lt_filter(extract_values_from_response):
-    url, random_values, _ = extract_values_from_response
-    prevPositionTicket = random_values[2]
-    resp, body = fetch_get(url, params=[f'prevPositionTicketFilterLt={prevPositionTicket}'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    objs = body['values']
-    for obj in objs:
-        print(f"prevPositionTicket: {int(obj['prevPositionTicket'])}")
-        assert_that(int(obj['prevPositionTicket'])).is_less_than(int(prevPositionTicket))
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_prev_position_ticket_le_filter(extract_values_from_response):
-    url, random_values, _ = extract_values_from_response
-    prevPositionTicket = random_values[2]
-    resp, body = fetch_get(url, params=[f'prevPositionTicketFilterLe={prevPositionTicket}'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    objs = body['values']
-    for obj in objs:
-        print(f"prevPositionTicket: {int(obj['prevPositionTicket'])}")
-        assert_that(int(obj['prevPositionTicket'])).is_less_than_or_equal_to(int(prevPositionTicket))
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_prev_position_ticket_sort_asc(extract_values_from_response):
-    url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=['prevPositionTicketSortAsc=true'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    objs = body['values']
-    # Convert all values to integers
-    values = [int(obj['prevPositionTicket']) for obj in objs]
-
-    # Check if values are sorted in ascending order
-    for i in range(len(values) - 1):
-        assert values[i] <= values[i + 1], f"prevPositionTickets are not sorted in ascending order: {values}"
-
-    print("All prevPositionTickets are sorted in ascending order.")
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_prev_position_ticket_sort_desc(extract_values_from_response):
-    url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=['prevPositionTicketSortDesc=true'])
-
-    print(f"Status code: {resp.status_code}")
-    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
-
-    objs = body['values']
-    # Convert all values to integers
-    values = [int(obj['prevPositionTicket']) for obj in objs]
-
-    # Check if values are sorted in descending order
-    for i in range(len(values) - 1):
-        assert values[i] >= values[i + 1], f"prevPositionTickets are not sorted in descending order: {values}"
-
-    print("All prevPositionTickets are sorted in descending order.")
-
-
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockNumber = random_values[0]
@@ -363,8 +228,7 @@ def test_block_number_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_value_ge(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockNumber = random_values[0]
@@ -379,8 +243,7 @@ def test_block_number_value_ge(extract_values_from_response):
         assert_that(int(obj['blockNumber'])).is_greater_than_or_equal_to(blockNumber)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_value_lt(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockNumber = random_values[0]
@@ -395,8 +258,7 @@ def test_block_number_value_lt(extract_values_from_response):
         assert_that(int(obj['blockNumber'])).is_less_than(blockNumber)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_number_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockNumberSortAsc=true'])
@@ -416,8 +278,7 @@ def test_block_number_sort_asc(extract_values_from_response):
     print("All values are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockTs = random_values[1]
@@ -437,8 +298,7 @@ def test_block_ts_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_value_ge(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockTs = random_values[1]
@@ -449,8 +309,7 @@ def test_block_ts_value_ge(extract_values_from_response):
         assert_that(obj['blockTs']).is_greater_than_or_equal_to(blockTs)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_value_lt(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     blockTs = random_values[1]
@@ -465,8 +324,7 @@ def test_block_ts_value_lt(extract_values_from_response):
         assert_that(obj['blockTs']).is_less_than(blockTs)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockTsSortAsc=true'])
@@ -486,8 +344,7 @@ def test_block_ts_sort_asc(extract_values_from_response):
     print("All blockTs values are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_block_ts_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockTsSortDesc=true'])
@@ -508,133 +365,124 @@ def test_block_ts_sort_desc(extract_values_from_response):
     print("All blockTs values are sorted in descending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_new_position_ticket_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_assets_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    newPositionTicket = random_values[3]
-    resp, body = fetch_get(url, params=[f'newPositionTicket={newPositionTicket}&limit=10000'])
+    assets = random_values[3]
+    resp, body = fetch_get(url, params=[f'assets={assets}&limit=10000'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"newPositionTicket: {int(obj['newPositionTicket'])}")
-        assert_that(int(obj['newPositionTicket'])).is_equal_to(int(newPositionTicket)).described_as(
-            f"The newPositionTicket filter is not working correctly."
-            f"Expected newPositionTicket: '{newPositionTicket}' in the params, but got newPositionTicket: '{int(obj['newPositionTicket'])}' in the response objects.")
+        print(f"assets: {int(obj['assets'])}")
+        assert_that(int(obj['assets'])).is_equal_to(int(assets)).described_as(
+            f"The assets filter is not working correctly."
+            f"Expected Assets: '{assets}' in the params, but got Asset: '{int(obj['assets'])}' in the response objects.")
         assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)  # The indirect=True argument tells pytest to pass these values to the fixture
-# through the request object instead of directly to the test function.
-def test_new_position_ticket_gt_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_assets_gt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    newPositionTicket = random_values[3]
-    resp, body = fetch_get(url, params=[f'newPositionTicketFilterGt={newPositionTicket}'])
+    assets = random_values[3]
+    resp, body = fetch_get(url, params=[f'assetsFilterGt={assets}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200
 
     objs = body['values']
     for obj in objs:
-        print(f"newPositionTicket: {int(obj['newPositionTicket'])}")
-        assert_that(int(obj['newPositionTicket'])).is_greater_than(int(newPositionTicket))
+        print(f"assets: {int(obj['assets'])}")
+        assert_that(int(obj['assets'])).is_greater_than(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_new_position_ticket_ge_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_assets_ge_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    newPositionTicket = random_values[3]
-    resp, body = fetch_get(url, params=[f'newPositionTicketFilterGe={newPositionTicket}'])
+    assets = random_values[3]
+    resp, body = fetch_get(url, params=[f'assetsFilterGe={assets}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"newPositionTicket: {int(obj['newPositionTicket'])}")
-        assert_that(int(obj['newPositionTicket'])).is_greater_than_or_equal_to(int(newPositionTicket))
+        print(f"assets: {int(obj['assets'])}")
+        assert_that(int(obj['assets'])).is_greater_than_or_equal_to(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_new_position_ticket_lt_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_assets_lt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    newPositionTicket = random_values[3]
-    resp, body = fetch_get(url, params=[f'newPositionTicketFilterLt={newPositionTicket}'])
+    assets = random_values[3]
+    resp, body = fetch_get(url, params=[f'assetsFilterLt={assets}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"newPositionTicket: {int(obj['newPositionTicket'])}")
-        assert_that(int(obj['newPositionTicket'])).is_less_than(int(newPositionTicket))
+        print(f"assets: {int(obj['assets'])}")
+        assert_that(int(obj['assets'])).is_less_than(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_new_position_ticket_le_filter(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_assets_le_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
-    newPositionTicket = random_values[3]
-    resp, body = fetch_get(url, params=[f'newPositionTicketFilterLe={newPositionTicket}'])
+    assets = random_values[3]
+    resp, body = fetch_get(url, params=[f'assetsFilterLe={assets}'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     for obj in objs:
-        print(f"newPositionTicket: {int(obj['newPositionTicket'])}")
-        assert_that(int(obj['newPositionTicket'])).is_less_than_or_equal_to(int(newPositionTicket))
+        print(f"assets: {int(obj['assets'])}")
+        assert_that(int(obj['assets'])).is_less_than_or_equal_to(int(assets))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_new_position_ticket_sort_asc(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_assets_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=['newPositionTicketSortAsc=true'])
+    resp, body = fetch_get(url, params=['assetsSortAsc=true'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     # Convert all values to integers
-    values = [int(obj['newPositionTicket']) for obj in objs]
+    values = [int(obj['assets']) for obj in objs]
 
     # Check if values are sorted in ascending order
     for i in range(len(values) - 1):
-        assert values[i] <= values[i + 1], f"newPositionTickets are not sorted in ascending order: {values}"
+        assert values[i] <= values[i + 1], f"Assets are not sorted in ascending order: {values}"
 
-    print("All newPositionTickets are sorted in ascending order.")
+    print("All assets are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
-def test_new_position_ticket_sort_desc(extract_values_from_response):
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_assets_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
-    resp, body = fetch_get(url, params=['newPositionTicketSortDesc=true'])
+    resp, body = fetch_get(url, params=['assetsSortDesc=true'])
 
     print(f"Status code: {resp.status_code}")
     assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
 
     objs = body['values']
     # Convert all values to integers
-    values = [int(obj['newPositionTicket']) for obj in objs]
+    values = [int(obj['assets']) for obj in objs]
 
     # Check if values are sorted in descending order
     for i in range(len(values) - 1):
-        assert values[i] >= values[i + 1], f"newPositionTickets are not sorted in descending order: {values}"
+        assert values[i] >= values[i + 1], f"Assets are not sorted in descending order: {values}"
 
-    print("All newPositionTickets are sorted in descending order.")
+    print("All assets are sorted in descending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_tx_hash_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     txHash = random_values[5]
@@ -654,8 +502,7 @@ def test_tx_hash_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_log_index_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     logIndex = random_values[6]
@@ -676,8 +523,7 @@ def test_log_index_filter(extract_values_from_response):
     print(f"Total: {body['total']}")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_indexed_at_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     indexedAt = random_values[5]
@@ -697,8 +543,101 @@ def test_indexed_at_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [f"{URL}"],
-                         indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_user_filter(extract_values_from_response):
+    url, random_values, _ = extract_values_from_response
+    user = random_values[8]
+    resp, body = fetch_get(url, params=[f'user={user}&limit=10000'])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    objs = body['values']
+    for obj in objs:
+        print(f"user: {obj['user']}")
+        assert_that((obj['user'])).is_equal_to(user).described_as(
+            f"The user filter is not working correctly."
+            f"Expected user: '{user}' in the params, but got user: '{(obj['user'])}' in the response objects.")
+        assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
+            f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_user_sort_asc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["userSortAsc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["user"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] <= values[i + 1], "Users are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_user_sort_desc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["userSortDesc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["user"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] >= values[i + 1], "Users are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_vault_address_filter(extract_values_from_response):
+    url, random_values, _ = extract_values_from_response
+    vaultAddress = random_values[9]
+    resp, body = fetch_get(url, params=[f'vaultAddress={vaultAddress}&limit=10000'])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    objs = body['values']
+    for obj in objs:
+        print(f"vaultAddress: {obj['vaultAddress']}")
+        assert_that((obj['vaultAddress'])).is_equal_to(vaultAddress).described_as(
+            f"The vaultAddress filter is not working correctly."
+            f"Expected vaultAddress: '{vaultAddress}' in the params, but got vaultAddress: '{(obj['vaultAddress'])}' in the response objects.")
+        assert_that(len(objs)).is_equal_to(int(body['total'])).described_as(
+            f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_vault_address_sort_asc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["vaultAddressSortAsc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["vaultAddress"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] <= values[i + 1], "VaultAddresses are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+def test_vault_address_sort_desc(extract_values_from_response):
+    url, _, _ = extract_values_from_response
+    resp, body = fetch_get(url, params=["vaultAddressSortDesc=True"])
+
+    print(f"Status code: {resp.status_code}")
+    assert resp.status_code == 200, f"Expected status code 200, but got {resp.status_code} instead."
+
+    values = [int(obj["vaultAddress"], 16) for obj in body["values"]]
+    for i in range(len(values) - 1):
+        print(values[i])
+        assert values[i] >= values[i + 1], "VaultAddresses are not sorted in ascending order."
+
+
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
 def test_random_limit(extract_values_from_response):
     url, _, _ = extract_values_from_response
 
@@ -722,12 +661,13 @@ def test_random_limit(extract_values_from_response):
 def extract_field_value(obj, filter_name):
     """Extracts the relevant field value from a response object based on the filter name."""
     field_map = {
-        "newPositionTicketFilterIn": int(obj["newPositionTicket"]),
-        "prevPositionTicketFilterIn": obj["prevPositionTicket"],
+        "assetsFilterIn": int(obj["assets"]),
+        "callerFilterIn": obj["caller"],
+        "sharesFilterIn": obj["shares"],
         "txHashFilterIn": obj["txHash"],
         "blockNumberFilterIn": int(obj["blockNumber"]),
-        "withdrawnAssetsFilterIn": obj["withdrawnAssets"],
-        "receiverFilterIn": obj["receiver"],
+        "userFilterIn": obj["user"],
+        "vaultAddressFilterIn": obj["vaultAddress"],
     }
     return field_map[filter_name]
 
@@ -735,12 +675,20 @@ def extract_field_value(obj, filter_name):
 @pytest.mark.parametrize(
     "filter_name, extract_values_from_response",
     [
-        ("newPositionTicketFilterIn", URL),
-        ("prevPositionTicketFilterIn", URL),
-        ("txHashFilterIn", URL),
-        ("blockNumberFilterIn", URL),
-        ("withdrawnAssetsFilterIn", URL),
-        ("receiverFilterIn", URL),
+        ("assetsFilterIn", URL_1),
+        ("assetsFilterIn", URL_2),
+        ("sharesFilterIn", URL_1),
+        ("sharesFilterIn", URL_2),
+        ("txHashFilterIn", URL_1),
+        ("txHashFilterIn", URL_2),
+        ("blockNumberFilterIn", URL_1),
+        ("blockNumberFilterIn", URL_2),
+        ("callerFilterIn", URL_1),
+        ("callerFilterIn", URL_2),
+        ("userFilterIn", URL_1),
+        ("userFilterIn", URL_2),
+        ("vaultAddressFilterIn", URL_1),
+        ("vaultAddressFilterIn", URL_2),
     ],
     indirect=["extract_values_from_response"]
 )
@@ -748,12 +696,13 @@ def test_filter_in(filter_name, extract_values_from_response):
     url, _, several_values = extract_values_from_response
     # Extract corresponding field values for the current filter
     field_map = {
-        "newPositionTicketFilterIn": 3,
-        "prevPositionTicketFilterIn": 2,
+        "assetsFilterIn": 3,
+        "sharesFilterIn": 2,
         "txHashFilterIn": 4,
         "blockNumberFilterIn": 0,
-        "withdrawnAssetsFilterIn": 7,
-        "receiverFilterIn": 8,
+        "callerFilterIn": 7,
+        "userFilterIn": 8,
+        "vaultAddressFilterIn": 9
     }
     values = [item[field_map[filter_name]] for item in several_values]
     filter_value = ','.join(map(str, values))
