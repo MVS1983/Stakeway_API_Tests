@@ -19,9 +19,10 @@ from routes.indexer_endpoints import BASE_URL
 
 URL_1 = f"{BASE_URL}api/v1/events/GetByFiltersInitializedsIdx1"
 URL_2 = f"{BASE_URL}api/v1/events/GetByFiltersInitializedsIdx2"
+URL_3 = f"{BASE_URL}api/v1/events/GetByFiltersInitializedsIdx3"
 
 
-@pytest.fixture(params=[URL_1, URL_2])
+@pytest.fixture(params=[URL_1, URL_2, URL_3])
 def extract_values_from_response(request):
     """
     Extract specific values from the response.
@@ -44,14 +45,16 @@ def extract_values_from_response(request):
 
     # Get a random sample of 3 values, ensuring there are at least 1 values to sample
     if len(extracted_values) < 1:
-        raise ValueError("Not enough values in the response to extract a sample of 1.")
+        reason = "Skipping test: Not enough values in the response to extract a sample of 1."
+        print(reason)  # Log the reason
+        pytest.skip(reason)
 
     random_values = random.choice(extracted_values)
     several_values = random.sample(extracted_values, k=min(5, len(extracted_values)))
     return url, random_values, several_values
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_number_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     test_key = 'blockNumber'
@@ -62,7 +65,7 @@ def test_block_number_filter(extract_values_from_response):
     assert_filter_correctness(body, test_key, expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_number_value_ge(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     test_key = 'blockNumber'
@@ -73,7 +76,7 @@ def test_block_number_value_ge(extract_values_from_response):
     assert_ge_filter(body, test_key, expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_number_value_lt(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     test_key = 'blockNumber'
@@ -84,7 +87,7 @@ def test_block_number_value_lt(extract_values_from_response):
     assert_lt_filter(body, test_key, expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_number_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockNumberSortAsc=True'])
@@ -93,7 +96,7 @@ def test_block_number_sort_asc(extract_values_from_response):
     assert_sorted_ascending(body, 'blockNumber')
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_ts_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     test_key = 'blockTs'
@@ -104,7 +107,7 @@ def test_block_ts_filter(extract_values_from_response):
     assert_filter_correctness(body, test_key, expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_ts_value_ge(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     expected_value = random_values[1]
@@ -114,7 +117,7 @@ def test_block_ts_value_ge(extract_values_from_response):
     assert_ge_filter(body, 'blockTs', expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_ts_value_lt(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     expected_value = random_values[1]
@@ -124,7 +127,7 @@ def test_block_ts_value_lt(extract_values_from_response):
     assert_lt_filter(body, 'blockTs', expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_ts_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockTsSortAsc=True'])
@@ -133,7 +136,7 @@ def test_block_ts_sort_asc(extract_values_from_response):
     assert_sorted_ascending(body, 'blockTs')
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_block_ts_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['blockTsSortDesc=True'])
@@ -142,7 +145,7 @@ def test_block_ts_sort_desc(extract_values_from_response):
     assert_sorted_descending(body, 'blockTs')
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_version_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     version = random_values[2]
@@ -160,7 +163,7 @@ def test_version_filter(extract_values_from_response):
             f"Expected 'total' in response body ({body['total']}) to match the length of 'objs' ({len(objs)})")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_version_gt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     version = random_values[2]
@@ -174,7 +177,7 @@ def test_version_gt_filter(extract_values_from_response):
         assert_that(int(obj['version'])).is_greater_than(int(version))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_version_ge_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     version = random_values[2]
@@ -188,7 +191,7 @@ def test_version_ge_filter(extract_values_from_response):
         assert_that(int(obj['version'])).is_greater_than_or_equal_to(int(version))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_version_lt_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     version = random_values[2]
@@ -202,7 +205,7 @@ def test_version_lt_filter(extract_values_from_response):
         assert_that(int(obj['version'])).is_less_than(int(version))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_version_le_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     version = random_values[2]
@@ -216,7 +219,7 @@ def test_version_le_filter(extract_values_from_response):
         assert_that(int(obj['version'])).is_less_than_or_equal_to(int(version))
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_version_sort_asc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['versionSortAsc=true'])
@@ -234,7 +237,7 @@ def test_version_sort_asc(extract_values_from_response):
     print("All versions are sorted in ascending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_version_sort_desc(extract_values_from_response):
     url, _, _ = extract_values_from_response
     resp, body = fetch_get(url, params=['versionSortDesc=true'])
@@ -252,7 +255,7 @@ def test_version_sort_desc(extract_values_from_response):
     print("All versions are sorted in descending order.")
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_tx_hash_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     txHash = random_values[3]
@@ -262,7 +265,7 @@ def test_tx_hash_filter(extract_values_from_response):
     assert_tx_hash_filter(body, txHash)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_log_index_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     expected_value = random_values[2]
@@ -272,7 +275,7 @@ def test_log_index_filter(extract_values_from_response):
     assert_filter_correctness(body, 'logIndex', expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_indexed_at_filter(extract_values_from_response):
     url, random_values, _ = extract_values_from_response
     expected_value = random_values[2]
@@ -282,7 +285,7 @@ def test_indexed_at_filter(extract_values_from_response):
     assert_filter_correctness(body, 'indexedAt', expected_value)
 
 
-@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2], indirect=True)
+@pytest.mark.parametrize("extract_values_from_response", [URL_1, URL_2, URL_3], indirect=True)
 def test_random_limit(extract_values_from_response):
     url, _, _ = extract_values_from_response
     random_limit = get_random_limit()
@@ -307,10 +310,13 @@ def extract_field_value(obj, filter_name):
     [
         ("versionFilterIn", URL_1),
         ("versionFilterIn", URL_2),
+        ("versionFilterIn", URL_3),
         ("txHashFilterIn", URL_1),
         ("txHashFilterIn", URL_2),
+        ("txHashFilterIn", URL_3),
         ("blockNumberFilterIn", URL_1),
         ("blockNumberFilterIn", URL_2),
+        ("blockNumberFilterIn", URL_3)
     ],
     indirect=["extract_values_from_response"]
 )

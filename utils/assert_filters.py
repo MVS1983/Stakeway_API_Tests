@@ -204,3 +204,39 @@ def assert_checking_the_eth_address_and_filter(body, test_key, expected_value):
     assert_that(len(objs)).is_equal_to(int(body.get('total', 0))).described_as(
         f"Expected 'total' in response body ({body.get('total')}) to match the length of 'objs' ({len(objs)})"
     )
+
+
+def assert_sorted_ascending_with_hexadecimal_values(body, test_key):
+    """
+    Validate that the specified key in the response body is sorted in ascending order.
+
+    param body: The JSON response body.
+    param test_key: The key whose values should be sorted.
+    (True for ascending order).
+    """
+    objs = body['values']
+    values = [int(obj[test_key], 16) for obj in objs]
+
+    for i in range(len(values) - 1):
+        print(f"{test_key}: {values[i]}")
+        assert values[i] <= values[i + 1], f"Values for {test_key} are not sorted in ascending order: {values}"
+
+    print(f"All values for {test_key} are sorted in ascending order.")
+
+
+def assert_sorted_descending_with_hexadecimal_values(body, test_key):
+    """
+    Validate that the specified key in the response body is sorted in ascending order.
+
+    param body: The JSON response body.
+    param test_key: The key whose values should be sorted.
+    (True for ascending order).
+    """
+    objs = body['values']
+    values = [int(obj[test_key], 16) for obj in objs]
+
+    for i in range(len(values) - 1):
+        print(f"{test_key} as integer: {values[i]}")
+        assert values[i] >= values[i + 1], f"Values for {test_key} are not sorted in descending order: {values}"
+    for elem in objs:
+        print(f"All values for {elem[test_key]} are sorted in descending order.")
